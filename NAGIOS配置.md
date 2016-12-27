@@ -1,15 +1,22 @@
 # 监控工具之NAGIOS配置#
 
-## 1.什么是nagios##
+[TOC]
 
-Nagios 是一款开源的免费网络监控报警服务,能有效监控 Windows、Linux 和 Unix 的主机状态,交换机、路由器和防火墙等网络设置，打印机、网络投影、网络摄像等设备。在系统或服务状态异常时发出邮件或短信报警第一时间通知运维人员，在状态恢复后发出正常的邮件或短信通知。Nagios 有完善的插件功能，可以方便的根据应用服务扩展功能。Nagios 可以使用服务-代理(Server-Agent)方式获取主机信息，也可以使用 SNMP 方式获取设备信息。使用服务器-代理(Server-Agent)方式在每个主机上运行代理软件，主机上的代理软件主动提交数据信息，可以避免服务器轮询带来的延迟和非实时性等问题。Nagios 已经可以支持由数万台服务器或上千台网络设备组成的云技术平台的监控，它可以充分发挥自动化运维技术特点在设备和人力资源减少成本。只是 Nagios 无法将多个相同应用集群的数据集合起来，也不能监控到集群中特殊节点的迁移和恢复。
+## 什么是nagios##
 
-## 2.配置nagios的运行环境##
+Nagios 是一款开源的免费网络监控报警服务,能有效监控 Windows、Linux 和 Unix 的主机状态以及交换机、路由器和防火墙等网络设置，还有打印机、网络投影、网络摄像等设备。在系统或服务状态异常时发出邮件或其他即时通讯报警，以第一时间通知运维人员。在状态恢复后发出正常的邮件或即时通讯通知。
 
-这里以servera作为nagios的server端：执行以下操作
+Nagios 有完善的插件功能，可以方便的根据应用服务扩展功能。
+
+Nagios 可以使用服务-代理(Server-Agent)方式获取主机信息，也可以使用 SNMP 方式获取设备信息。使用服务器-代理(Server-Agent)方式在每个主机上运行代理软件，主机上的代理软件主动提交数据信息，可以避免服务器轮询带来的延迟和非实时性等问题。Nagios 已经可以支持由数万台服务器或上千台网络设备组成的云技术平台的监控，它可以充分发挥自动化运维技术特点在设备和人力资源减少成本。 
+
+Nagios 的缺点在于无法将多个相同应用集群的数据集合起来，也不能监控到集群中特殊节点的迁移和恢复。
+
+## 配置nagios的运行环境##
+
+首先建立一个Nagios的Web主机，用来接受用户的Web访问。这里以servera作为nagios的server端：执行以下操作
 
 ```shell
-[root@servera nagios]# yum -y localinstall *.rpm
 [root@servera conf.d]# vim /etc/httpd/conf.d/nagios.conf 
 ScriptAlias /nagios/cgi-bin/ "/usr/lib64/nagios/cgi-bin/"
 
@@ -84,12 +91,14 @@ nagiosadmin:$apr1$YKvTZ4/1$Puhwv8zlVMOJRke9xtJxC/
 [root@servera conf.d]# 
 ```
 
-配置正常后，启动 httpd 服务，我们就可以通过浏览器访问 http://$IP/nagios 看到如下图所示了。
-
+配置正常后，安装nagios软件包（软件包可以在classroom服务器下载），并启动 httpd 和nagios服务，
 ```shell
+[root@servera nagios]# yum -y localinstall *.rpm
 [root@servera conf.d]# systemctl restart httpd
 [root@servera conf.d]# systemctl restart nagios
 ```
+
+我们就可以通过浏览器访问 http://servera.podN.example.com/nagios ，也可以使用主机IP访问，比如教师机上使用172.25.0.10访问看到如下图所示了。
 
 ![](nagios/1.png)
 
@@ -102,9 +111,9 @@ nagiosadmin:$apr1$YKvTZ4/1$Puhwv8zlVMOJRke9xtJxC/
 [root@servera conf.d]# systemctl restart snmpd
 ```
 
-## 3.nagios配置文件说明##
+## nagios配置文件说明##
 
-### 1）配置文件结构说明###
+### 配置文件结构说明###
 
 #### 服务主目录配置文件说明：####
 
@@ -114,7 +123,7 @@ nagiosadmin:$apr1$YKvTZ4/1$Puhwv8zlVMOJRke9xtJxC/
 cgi.cfg  conf.d  nagios.cfg  nrpe.cfg  objects  passwd  private
 ```
 
-| 文件         | 作用                                       |
+| 文件         | 说明                                       |
 | ---------- | ---------------------------------------- |
 | cgi.cfg    | 控制 cgi 访问的配置文件，RPM 安装的 Nagios 的 cgi 文件放置在/usr/lib64/nagios/cgi-bin 目录中。 |
 | nagios.cfg | Nagios 的主配置文件，定义了一些文件路径及全局参数。            |
@@ -151,7 +160,7 @@ Nagios 配置需要注意以下四点:
 
 nagios 主要用于监控主机资源以及服务,在 nagios 配置中称为对象，为了不必重复定义一些监控对象，Nagios 引入了一个模板配置文件，将一些共性的属性定义成模板，以便于多次引用，这就是 templates.cfg 的作用。
 
-### 2）templates文件说明：###
+### templates文件说明：###
 
 #### 联系人等相关定义：####
 
@@ -232,7 +241,7 @@ define service{
 
 ```
 
-### 3）nagios宏的说明###
+### nagios宏的说明###
 
 Nagios 配置非常灵活，继承和引用是一大特征，另一个重要特征就是可以在命令行的定义里使用宏，通过定义宏 nagios 可以灵活的获取主机、服务和其它对象的信息。
 在执行命令之前，nagios 将对命令里的每个宏替换成它们应当取得的值。这种宏替换发生在 Nagios 执行各种类型的宏时候。例如主机和服务的检测、通知、事件处理等。
@@ -243,7 +252,7 @@ Nagios 配置非常灵活，继承和引用是一大特征，另一个重要特�
 
 Nagios 可用的全部的宏
 
-| 宏类型  | 宏名及说明               | 说明                                     |
+| 宏类型  | 宏名称                 | 说明                                     |
 | ---- | ------------------- | -------------------------------------- |
 | 主机宏  | \$HOSTNAME$         | 主机简称 ( 如 "web") ，取自于主机定义里的 host_name 域 |
 |      | \$HOSTADDRESS$      | 主机地址，取自于主机定义里的 address 域               |
@@ -257,11 +266,9 @@ Nagios 可用的全部的宏
 | 其他宏  | \$adminemail$       | 全局的管理员email地址                          |
 |      | \$argn$             | 指向第n个命令传递参数，nagios最多支持32个参数宏           |
 
-### 4）commands.cfg文件说明###
+### commands.cfg文件说明###
 
 commands.cfg 文件默认是存在的，无需修改即可使用，当然如果有新的命令需要加入时，在此文件进行添加即可。这里并未列出文件的所有内容，仅仅介绍了配置中用到的一些命令。
-
-举例：
 
 ```shell
 [root@servera objects]# vim commands.cfg 
@@ -275,7 +282,7 @@ define command{
 # ARG代表传递进来的参数
 ```
 
-### 5）localhost.cfg配置文件说明###
+### localhost.cfg配置文件说明###
 
 localhost.cfg是用来定义本地主机相关的配置。
 
@@ -302,7 +309,7 @@ define service{
 
 ```
 
-### 6）contacts.cfg配置文件的说明###
+### contacts.cfg配置文件的说明###
 
 contacts.cfg 是一个定义联系人和联系人组的配置文件。当监控的主机或者服务出现故障，nagios 会通过指定的通知方式（邮件或者短信）将信息发给这里指定的联系人或者使用者。
 
@@ -324,7 +331,7 @@ define contactgroup{
 
 ```
 
-### 7）timeperiods.cfg 文件说明
+### timeperiods.cfg 文件说明
 
 timeperiods.cfg只用于定义监控的时间段，下面是一个配置好的实例：
 
@@ -341,21 +348,30 @@ define timeperiod{
         }
 ```
 
-## 4.配置nagios监控远程主机##
+## 配置nagios监控远程主机##
 
-在这里，我们被监控的主机为serverb这台服务器，ip地址为172.25.0.11，实际监控内容可以自行选择。
+在这里，我们被监控的主机为serverb.podN.example.com这台服务器，ip地址为172.25.N.11，实际监控内容可以自行选择，请注意使用你的设备号替换N，讲师机设备号为0。
 
-### 1）配置被监控主机运行环境###
+### 配置被监控主机运行环境###
 
 #### 软件安装####
 
 为了方便配置和监测，我们需要在该服务器上安装 nagios 的客户端和监控内容对应的插件。在该服务器上我们还需要配置 nrpe，让它运行servera的 nagios 访问并且执行命令监测各内容的运行状况。
 
-理论上想要监控什么内容，再去安装什么插件，这里就直接全安装掉。
+实际工作中，为保证系统的整洁和安全，一般需要监控监控什么内容，再只安装什么插件。
+
+在我们的实验环境中，可以在classroom服务器下载需要的软件包，然后将其安装。
 
 ```shell
 [root@serverb nagios]# yum -y localinstall *.rpm
 ```
+
+#### NRPE 
+NRPE是Nagios的一个功能扩展，它可在远程Linux/Unix主机上执行插件程序。通过在远程服务器上安装NRPE插件及Nagios插件程序来向Nagios监控平台提供该服务器的本地情况，如CPU负载，内存使用，磁盘使用等。我们将Nagios监控端称为Nagios服务器端，而将远程被监控的主机称为Nagios客户端。
+
+Nagios监控远程主机的方法有多种，其方式包括SNMP、NRPE、SSH、NCSA等。Nagios官方推荐监控主机使用NRPE方式，而监控设备使用SNMP方式。
+
+NRPE（Nagios Remote Plugin Executor）是用于在远端服务器上运行监测命令的守护进程，它用于让Nagios监控端基于安装的方式触发远端主机上的检测命令，并将检测结果返回给监控端。而其执行的开销远低于基于SSH的检测方式，而且检测过程不需要远程主机上的系统账号信息，其安全性也高于SSH的检测方式。
 
 #### 编辑nrpe配置文件####
 
@@ -376,7 +392,7 @@ command[check_total_procs]=/usr/lib64/nagios/plugins/check_procs -w 150 -c 200
 [root@serverb nagios]# systemctl restart nrpe
 ```
 
-### 2）配置监控主机的相关内容###
+### 配置监控主机的相关内容###
 
 先在主配置文件里增加一个条目，定义serverb.conf该配置文件专门用来定义serverb的监控实例：
 
@@ -503,4 +519,5 @@ Things look okay - No serious problems were detected during the pre-flight check
 
 ![](nagios/4.png)
 
-更多的配置和使用方法请大家查看官方文档继续学习
+更多的配置和使用方法请大家查看官方文档继续学习。
+
